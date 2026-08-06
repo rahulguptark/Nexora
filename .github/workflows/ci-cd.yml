@@ -1,0 +1,60 @@
+name: Nexora Platform CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Job 1: Build & Verify Code Quality
+  verify:
+    name: Verify & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Prisma generator typechecks
+        run: npx prisma generate
+
+      - name: Build Next.js production asset
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          DATABASE_URL: "file:./dev.db" # Mock database url for compile pass
+
+  # Job 2: Build and publish container to Registry (Simulated AWS deploy)
+  deploy:
+    name: Package & Deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Container
+        run: |
+          docker build -t nexora-web:latest .
+
+      - name: Publish Docker Container (Simulated)
+        run: |
+          echo "Simulating push to Amazon ECR (Elastic Container Registry)..."
+          echo "ecr.aws/nexora/nexora-web:latest published!"
+
+      - name: Deploy container to Amazon ECS (Simulated)
+        run: |
+          echo "Updating AWS ECS (Elastic Container Service) cluster task definitions..."
+          echo "Deploy completed successfully. Traffic rerouted!"

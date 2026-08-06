@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# A scrape configuration containing exactly one endpoint to scrape:
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape Next.js Application metrics telemetry
+  - job_name: 'nexora-web-application'
+    metrics_path: '/api/metrics' # Hypothetical metrics route exposed by nextjs
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['web:3000']

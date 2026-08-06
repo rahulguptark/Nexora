@@ -1,0 +1,444 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                   String                  @id @default(uuid())
+  email                String                  @unique
+  passwordHash         String
+  firstName            String
+  lastName             String
+  phoneNumber          String?                 @unique
+  status               String                  @default("pending_verification") // 'active', 'suspended', 'pending_verification'
+  isMfaEnabled         Boolean                 @default(false)
+  mfaSecret            String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  roles                UserRole[]
+  sessions             Session[]
+  otps                 Otp[]
+  addresses            Address[]
+  preferences          NotificationPreference?
+  auditLogs            AuditLog[]
+  searchLogs           SearchQueryLog[]
+  cart                 Cart?
+  orders               Order[]
+  wallet               UserWallet?
+  notifications        OrderNotification[]
+  reviews              Review[]
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique // 'super_admin', 'admin', 'seller', 'warehouse_manager', 'support_executive', 'finance_team', 'customer'
+  description String?
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  description String?
+  roles       RolePermission[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String   @unique
+  ipAddress        String
+  userAgent        String
+  isRevoked        Boolean  @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+}
+
+model Otp {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  otpCodeHash String
+  purpose     String   // 'email_verification', 'mfa', 'password_reset'
+  isUsed      Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+}
+
+model Address {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDefaultBilling  Boolean  @default(false)
+  isDefaultShipping Boolean  @default(false)
+  recipientName     String
+  phoneNumber       String
+  addressLine1      String
+  addressLine2      String?
+  city              String
+  state             String
+  postalCode        String
+  country           String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model NotificationPreference {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailTransactional Boolean  @default(true)
+  emailMarketing     Boolean  @default(false)
+  smsAlerts          Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  tableName String
+  rowId     String
+  oldValues String?  // Stringified JSON payload
+  newValues String?  // Stringified JSON payload
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  logoUrl   String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Category {
+  id        String            @id @default(uuid())
+  name      String
+  slug      String            @unique
+  parentId  String?
+  parent    Category?         @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children  Category[]        @relation("CategoryToCategory")
+  products  ProductCategory[]
+  createdAt DateTime          @default(now())
+}
+
+model Product {
+  id              String            @id @default(uuid())
+  name            String
+  slug            String            @unique
+  description     String?
+  brandId         String?
+  brand           Brand?            @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  sellerId        String
+  seller          Seller            @relation(fields: [sellerId], references: [id], onDelete: Restrict)
+  metadata        String?           // SQLite fallback: JSON stored as string
+  isActive        Boolean           @default(true)
+  visibility      String            @default("public") // 'public', 'hidden', 'draft'
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  tags            String?           // comma-separated or JSON string
+  recommendations String?           // JSON string of recommended product IDs
+  categories      ProductCategory[]
+  variants        ProductVariant[]
+  reviews         Review[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model ProductCategory {
+  productId  String
+  categoryId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+}
+
+model ProductVariant {
+  id                String      @id @default(uuid())
+  productId         String
+  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku               String      @unique
+  barcode           String?     @unique
+  price             Float
+  compareAtPrice    Float?
+  weightKg          Float       @default(0.0)
+  dimensionsJson    String?
+  variantAttributes String?     // SQLite fallback: JSON stored as string
+  images            String?     // JSON string list of image URLs
+  videos            String?     // JSON string list of video URLs
+  inventories       Inventory[]
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([productId])
+}
+
+model Warehouse {
+  id           String      @id @default(uuid())
+  sellerId     String?
+  seller       Seller?     @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  name         String
+  contactPhone String?
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  country      String
+  inventories  Inventory[]
+  createdAt    DateTime    @default(now())
+}
+
+model Seller {
+  id            String      @id @default(uuid())
+  name          String
+  email         String      @unique
+  phoneNumber   String?
+  isVerified    Boolean     @default(false)
+  taxIdentifier String?     @unique
+  products      Product[]
+  warehouses    Warehouse[]
+  createdAt     DateTime    @default(now())
+}
+
+model Inventory {
+  id                String         @id @default(uuid())
+  productVariantId  String
+  productVariant    ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  warehouseId       String
+  warehouse         Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  quantityAvailable Int            @default(0)
+  quantityReserved  Int            @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([productVariantId])
+  @@index([warehouseId])
+}
+
+model SearchQueryLog {
+  id        String   @id @default(uuid())
+  queryText String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+}
+
+model Cart {
+  id           String     @id @default(uuid())
+  userId       String?    @unique
+  user         User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  couponCode   String?
+  giftCardCode String?
+  items        CartItem[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model CartItem {
+  id               String         @id @default(uuid())
+  cartId           String
+  cart             Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  quantity         Int            @default(1)
+  isSavedForLater  Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([cartId])
+  @@index([productVariantId])
+}
+
+model Coupon {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  discountType  String    // 'percentage' or 'fixed'
+  discountValue Float
+  isActive      Boolean   @default(true)
+  expiresAt     DateTime?
+}
+
+model GiftCard {
+  id       String  @id @default(uuid())
+  code     String  @unique
+  balance  Float
+  isActive Boolean @default(true)
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  userId           String?
+  user             User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email            String
+  shippingAddress  String
+  billingAddress   String
+  shippingMethod   String      // 'standard', 'express'
+  paymentMethod    String      // 'cod', 'wallet', 'stripe', 'paypal', 'razorpay'
+  paymentStatus    String      // 'pending', 'paid', 'failed'
+  paymentIntentId  String?     // gateway transactions identifiers
+  subtotal         Float
+  discount         Float
+  shippingFee      Float
+  tax              Float
+  walletAmountUsed Float       @default(0.0)
+  total            Float
+  status           String      // 'processing', 'shipped', 'delivered', 'cancelled'
+  items            OrderItem[]
+  shipments        OrderShipment[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id               String         @id @default(uuid())
+  orderId          String
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+  quantity         Int
+  price            Float
+  shipmentId       String?
+  shipment         OrderShipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+
+  @@index([orderId])
+  @@index([productVariantId])
+  @@index([shipmentId])
+}
+
+model UserWallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Float    @default(0.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderShipment {
+  id                String      @id @default(uuid())
+  orderId           String
+  order             Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  carrier           String?     // 'FedEx', 'DHL', etc.
+  trackingNumber    String?
+  status            String      // 'processing', 'ready_for_pickup', 'shipped', 'out_for_delivery', 'delivered'
+  estimatedDelivery DateTime?
+  items             OrderItem[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([orderId])
+}
+
+model OrderNotification {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  orderId   String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([orderId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  rating    Int      // 1-5 rating value
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model SystemConfig {
+  id                       String   @id @default("primary_config")
+  guestCheckoutEnabled     Boolean  @default(true)
+  walletPaymentEnabled     Boolean  @default(true)
+  couponValidationEnabled  Boolean  @default(true)
+  maintenanceMode          Boolean  @default(false)
+  homepageBanners          String   @default("[]") // JSON array of slider image maps
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model NotificationJob {
+  id           String   @id @default(uuid())
+  userId       String?
+  channel      String   // 'email', 'sms', 'push', 'whatsapp'
+  templateName String   // 'order_placed', 'shipment_dispatched', 'otp_auth'
+  recipient    String   // address or phone number
+  payload      String   // stringified JSON variables
+  status       String   // 'pending', 'sent', 'failed'
+  retryCount   Int      @default(0)
+  maxRetries   Int      @default(3)
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PageVisit {
+  id        String   @id @default(uuid())
+  path      String   // e.g. '/', '/search', '/cart', '/checkout'
+  userId    String?
+  referrer  String?
+  createdAt DateTime @default(now())
+}
+
+model ClickLog {
+  id        String   @id @default(uuid())
+  pagePath  String
+  selector  String   // element description/tag
+  x         Int
+  y         Int
+  createdAt DateTime @default(now())
+}
+
+
