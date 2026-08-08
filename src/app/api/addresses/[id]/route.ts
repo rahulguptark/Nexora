@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 
 
 import { verifyAccessJWT } from "@/lib/auth"
@@ -73,7 +74,7 @@ export async function PUT(
     const { isDefaultBilling, isDefaultShipping } = result.data
 
     // Handle single default flags overrides
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (isDefaultBilling) {
         await tx.address.updateMany({
           where: { userId: sessionUser.userId, isDefaultBilling: true },

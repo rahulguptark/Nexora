@@ -6,7 +6,7 @@ This guide provides developers and system architects with instructions to initia
 
 ## 1. Prerequisites & Environment Setup
 
-Make sure you have **Node.js (v18.x or above)** and **npm** installed on your workstation.
+Make sure you have **Node.js (v22.x or above)** and **npm** installed on your workstation.
 
 ### 1.1 Environment Variables
 Create a `.env` file in the root directory (or ensure variables are loaded in your deployment runtime):

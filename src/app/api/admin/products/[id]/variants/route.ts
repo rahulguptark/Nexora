@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { verifyAccessJWT } from "@/lib/auth"
 
 async function checkCatalogWriteAccess(req: NextRequest) {
@@ -105,7 +106,7 @@ export async function POST(
     }
 
     // Create variant inside transaction with initial stock allocation
-    const variant = await prisma.$transaction(async (tx) => {
+    const variant = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const v = await tx.productVariant.create({
         data: {
           productId: id,
@@ -169,7 +170,7 @@ export async function PUT(
       return NextResponse.json({ error: "variantId is required" }, { status: 400 })
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Update Price if provided
       if (price !== undefined) {
         await tx.productVariant.update({

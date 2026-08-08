@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { verifyAccessJWT } from "@/lib/auth"
 
 async function getUserIdFromSession(req: NextRequest): Promise<string | null> {
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Transaction Database Placement
-    const order = await prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Create Order
       const newOrder = await tx.order.create({
         data: {

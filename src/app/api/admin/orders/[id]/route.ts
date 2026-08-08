@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { checkCatalogWriteAccess } from "@/lib/auth"
 
 export async function GET(
@@ -102,7 +103,7 @@ export async function PUT(
         return NextResponse.json({ error: "Order is already cancelled" }, { status: 409 })
       }
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Refund back to user's wallet if paid
         if (order.paymentStatus === "paid" && order.userId) {
           await tx.userWallet.upsert({
@@ -147,7 +148,7 @@ export async function PUT(
         let refundSum = 0
         const itemsToRefund = order.items.filter(item => refundItemIds.includes(item.id))
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           for (const item of itemsToRefund) {
             refundSum += item.price * item.quantity
             
@@ -189,7 +190,7 @@ export async function PUT(
       }
 
       // 2. Full Refund
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         if (order.userId) {
           await tx.userWallet.upsert({
             where: { userId: order.userId },

@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 
 describe("Cart Integration & Merge Tests", () => {
   const mockUserId = "test-user-merge-id"
@@ -67,7 +68,7 @@ describe("Cart Integration & Merge Tests", () => {
     })
 
     // 4. Execute Merge Operation (Transactional simulated logic)
-    const mergedItems = await prisma.$transaction(async (tx) => {
+    const mergedItems = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Fetch guest items
       const guestItems = await tx.cartItem.findMany({
         where: { cartId: mockGuestCartId },

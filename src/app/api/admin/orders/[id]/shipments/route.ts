@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { checkCatalogWriteAccess } from "@/lib/auth"
 
 export async function POST(
@@ -30,7 +31,7 @@ export async function POST(
     }
 
     // Process shipment creation and relink items transactionally
-    const shipment = await prisma.$transaction(async (tx) => {
+    const shipment = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newShipment = await tx.orderShipment.create({
         data: {
           orderId: id,

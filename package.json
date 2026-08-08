@@ -14,7 +14,7 @@
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.3",
     "lucide-react": "^1.24.0",
-    "next": "16.2.10",
+    "next": "16.3.0",
     "otplib": "^13.4.1",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
@@ -31,9 +31,24 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.3.0",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "overrides": {
+    "postcss": "8.5.26",
+    "sharp": "0.35.3",
+    "nanoid": "3.3.18",
+    "js-yaml": "4.3.1",
+    "eslint": {
+      "brace-expansion": "1.1.18"
+    },
+    "typescript-eslint": {
+      "brace-expansion": "5.0.9"
+    }
   }
 }

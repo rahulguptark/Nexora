@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { verifyAccessJWT } from "@/lib/auth"
 
 async function getUserIdFromSession(req: NextRequest): Promise<string | null> {
@@ -108,7 +109,7 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "Order has already been dispatched or processed and cannot be cancelled." }, { status: 409 })
       }
 
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Refund back to wallet if paid
         if (order.paymentStatus === "paid" && order.userId) {
           await tx.userWallet.upsert({

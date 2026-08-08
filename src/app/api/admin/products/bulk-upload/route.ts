@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { verifyAccessJWT } from "@/lib/auth"
 import { parseCSV } from "@/lib/csv-parser"
 
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Run transaction insertion
-    const results = await prisma.$transaction(async (tx) => {
+    const results = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const createdVariants = []
 
       for (let i = 0; i < rows.length; i++) {

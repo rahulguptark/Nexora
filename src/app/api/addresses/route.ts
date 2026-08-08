@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { verifyAccessJWT } from "@/lib/auth"
 
 async function getAuthenticatedUser(req: NextRequest) {
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     const { isDefaultBilling, isDefaultShipping, ...addressData } = result.data
 
     // If default fields are true, clear other defaults first
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (isDefaultBilling) {
         await tx.address.updateMany({
           where: { userId: sessionUser.userId, isDefaultBilling: true },
